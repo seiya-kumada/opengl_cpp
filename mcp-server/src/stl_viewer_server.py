@@ -8,9 +8,8 @@ MCP server that provides tools for displaying 3D models using the STL Viewer app
 import asyncio
 import logging
 import subprocess
-import sys
 from pathlib import Path
-from typing import Any, Sequence
+from typing import Any
 
 import mcp.server.stdio
 from mcp import types
@@ -36,64 +35,57 @@ async def handle_list_tools() -> list[types.Tool]:
     return [
         types.Tool(
             name="display_3d_model",
-            description="Display a 3D model file using the STL Viewer application",
+            description="Display a 3D model file using the STL Viewer application (fixed 800x600 window)",
             inputSchema={
                 "type": "object",
                 "properties": {
                     "file_path": {
                         "type": "string",
-                        "description": "Path to the 3D model file (STL, OBJ, etc.)"
-                    },
-                    "window_width": {
-                        "type": "integer",
-                        "description": "Window width in pixels (optional, default: 800)",
-                        "default": 800
-                    },
-                    "window_height": {
-                        "type": "integer", 
-                        "description": "Window height in pixels (optional, default: 600)",
-                        "default": 600
+                        "description": "Path to the 3D model file (STL, OBJ, etc.)",
                     }
                 },
-                "required": ["file_path"]
-            }
+                "required": ["file_path"],
+            },
         )
     ]
 
 
 @server.call_tool()
-async def handle_call_tool(name: str, arguments: dict[str, Any] | None) -> list[types.TextContent]:
+async def handle_call_tool(
+    name: str, arguments: dict[str, Any] | None
+) -> list[types.TextContent]:
     """Handle tool calls."""
     if name != "display_3d_model":
         raise ValueError(f"Unknown tool: {name}")
-    
+
     if not arguments:
         raise ValueError("Missing arguments")
-    
+
     file_path = arguments.get("file_path")
     if not file_path:
         raise ValueError("file_path is required")
-    
+
     # Validate file exists
     model_file = Path(file_path)
     if not model_file.exists():
-        return [types.TextContent(
-            type="text",
-            text=f"Error: File not found: {file_path}"
-        )]
-    
+        return [
+            types.TextContent(type="text", text=f"Error: File not found: {file_path}")
+        ]
+
     # Check if STL viewer executable exists
     if not STL_VIEWER_PATH.exists():
-        return [types.TextContent(
-            type="text", 
-            text=f"Error: STL Viewer executable not found at: {STL_VIEWER_PATH}\nPlease build the project first."
-        )]
-    
+        return [
+            types.TextContent(
+                type="text",
+                text=f"Error: STL Viewer executable not found at: {STL_VIEWER_PATH}\nPlease build the project first.",
+            )
+        ]
+
     try:
         # Run the STL viewer
         cmd = [str(STL_VIEWER_PATH), str(model_file)]
         logger.info(f"Running command: {' '.join(cmd)}")
-        
+
         # Use subprocess.Popen with DETACHED_PROCESS for independent execution
         # Set working directory to project root so shaders/ can be found
         process = subprocess.Popen(
@@ -102,12 +94,13 @@ async def handle_call_tool(name: str, arguments: dict[str, Any] | None) -> list[
             stderr=subprocess.PIPE,
             text=True,
             cwd=str(PROJECT_ROOT),
-            creationflags=subprocess.DETACHED_PROCESS | subprocess.CREATE_NEW_PROCESS_GROUP
+            creationflags=subprocess.DETACHED_PROCESS
+            | subprocess.CREATE_NEW_PROCESS_GROUP,
         )
-        
+
         # Give the process a moment to start
         await asyncio.sleep(0.5)
-        
+
         # Check if process started successfully
         if process.poll() is not None:
             # Process has already terminated, check for errors
@@ -117,22 +110,20 @@ async def handle_call_tool(name: str, arguments: dict[str, Any] | None) -> list[
                 error_msg += f"Error: {stderr}"
             if stdout:
                 error_msg += f"Output: {stdout}"
-            return [types.TextContent(
+            return [types.TextContent(type="text", text=error_msg)]
+
+        return [
+            types.TextContent(
                 type="text",
-                text=error_msg
-            )]
-        
-        return [types.TextContent(
-            type="text",
-            text=f"Successfully launched STL Viewer for: {model_file.name}\nViewer window should now be open."
-        )]
-        
+                text=f"STLビューアーを起動しました: {model_file.name}\n\n利用可能な操作:\n- マウスホイール: ズームイン/アウト\n- ESCキー: ビューアー終了\n\n注意: モデルは静的表示です（回転や移動操作は未実装）",
+            )
+        ]
+
     except Exception as e:
         logger.error(f"Error launching STL viewer: {e}")
-        return [types.TextContent(
-            type="text",
-            text=f"Error launching STL viewer: {str(e)}"
-        )]
+        return [
+            types.TextContent(type="text", text=f"Error launching STL viewer: {str(e)}")
+        ]
 
 
 async def main():
@@ -146,9 +137,9 @@ async def main():
                 server_version="1.0.0",
                 capabilities=server.get_capabilities(
                     notification_options=NotificationOptions(),
-                    experimental_capabilities={}
-                )
-            )
+                    experimental_capabilities={},
+                ),
+            ),
         )
 
 

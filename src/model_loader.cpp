@@ -57,27 +57,17 @@ bool ModelLoader::loadFile(const std::string &filePath, ModelMesh &mesh)
 {
     errorMessage.clear();
 
-    // Assimpインポーターを作成
+    // Assimpインポーターを作成し、ファイルを読み込み
     auto importer = Assimp::Importer{};
-
-    // ファイルを読み込み（自動で最適化処理を適用）
-    auto flags = aiProcess_Triangulate |           // 全てのポリゴンを三角形に変換
-                 aiProcess_GenNormals |            // 法線ベクトルを自動生成
-                 aiProcess_ValidateDataStructure | // データ構造の妥当性を検証
-                 aiProcess_JoinIdenticalVertices | // 重複頂点を統合
-                 aiProcess_SortByPType |           // プリミティブタイプでソート
-                 aiProcess_OptimizeMeshes;
-    auto scene = importer.ReadFile(filePath, flags); // メッシュを最適化
-
+    auto scene = loadFileWithAssimp(filePath, importer);
     if (!scene)
     {
-        setError("Failed to load 3D model", importer.GetErrorString());
         return false;
     }
 
-    if (!scene->HasMeshes())
+    // シーンの基本検証
+    if (!validateScene(scene))
     {
-        setError("No mesh data found in the file", "File might be empty or corrupted");
         return false;
     }
 
@@ -87,10 +77,9 @@ bool ModelLoader::loadFile(const std::string &filePath, ModelMesh &mesh)
         return false;
     }
 
-    if (mesh.triangles.empty())
+    // 処理結果の検証
+    if (!validateProcessedMesh(mesh))
     {
-        setError("No triangle data could be extracted from the file",
-                 "Model might contain only points/lines or unsupported geometry");
         return false;
     }
 
@@ -98,6 +87,47 @@ bool ModelLoader::loadFile(const std::string &filePath, ModelMesh &mesh)
     calculateBounds(mesh);
     calculateCenterAndScale(mesh);
 
+    return true;
+}
+
+const aiScene* ModelLoader::loadFileWithAssimp(const std::string& filePath, Assimp::Importer& importer)
+{
+    // ファイルを読み込み（自動で最適化処理を適用）
+    auto flags = aiProcess_Triangulate |           // 全てのポリゴンを三角形に変換
+                 aiProcess_GenNormals |            // 法線ベクトルを自動生成
+                 aiProcess_ValidateDataStructure | // データ構造の妥当性を検証
+                 aiProcess_JoinIdenticalVertices | // 重複頂点を統合
+                 aiProcess_SortByPType |           // プリミティブタイプでソート
+                 aiProcess_OptimizeMeshes;         // メッシュを最適化
+    
+    auto scene = importer.ReadFile(filePath, flags);
+    if (!scene)
+    {
+        setError("Failed to load 3D model", importer.GetErrorString());
+        return nullptr;
+    }
+    
+    return scene;
+}
+
+bool ModelLoader::validateScene(const aiScene* scene)
+{
+    if (!scene->HasMeshes())
+    {
+        setError("No mesh data found in the file", "File might be empty or corrupted");
+        return false;
+    }
+    return true;
+}
+
+bool ModelLoader::validateProcessedMesh(const ModelMesh& mesh)
+{
+    if (mesh.triangles.empty())
+    {
+        setError("No triangle data could be extracted from the file",
+                 "Model might contain only points/lines or unsupported geometry");
+        return false;
+    }
     return true;
 }
 

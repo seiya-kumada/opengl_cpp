@@ -14,14 +14,21 @@
 
 namespace po = boost::program_options;
 
+// アプリケーション定数
+namespace {
+    constexpr int DEFAULT_WINDOW_WIDTH = 800;   ///< デフォルトウィンドウ幅
+    constexpr int DEFAULT_WINDOW_HEIGHT = 600;  ///< デフォルトウィンドウ高
+    constexpr const char* STL_EXTENSION = ".stl"; ///< STLファイル拡張子
+}
+
 /**
  * @brief ビューアーの設定を格納する構造体
  */
 struct ViewerConfig
 {
     std::string stlFilePath; ///< STLファイルのパス
-    int windowWidth = 800;   ///< ウィンドウ幅（ピクセル）
-    int windowHeight = 600;  ///< ウィンドウ高（ピクセル）
+    int windowWidth = DEFAULT_WINDOW_WIDTH;   ///< ウィンドウ幅（ピクセル）
+    int windowHeight = DEFAULT_WINDOW_HEIGHT;  ///< ウィンドウ高（ピクセル）
 };
 
 /**
@@ -68,9 +75,9 @@ bool validateSTLFile(const std::string &filePath)
     }
 
     // ファイル拡張子チェック
-    if (path.extension().string() != ".stl")
+    if (path.extension().string() != STL_EXTENSION)
     {
-        std::cerr << "Warning: File does not have .stl extension: " << filePath << std::endl;
+        std::cerr << "Warning: File does not have " << STL_EXTENSION << " extension: " << filePath << std::endl;
         std::cerr << "Warning: Continuing anyway..." << std::endl;
     }
 

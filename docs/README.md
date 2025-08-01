@@ -34,5 +34,3 @@ GLFW -> GLAD -> GLの順で初期化する
 - 頂点シェーダー：3つの頂点に対し実行される。
 - フラグメントシェーダー：三角形内部の全ピクセルに対し実行される。
 
-
-STLViewer::loadSTL内のsetupAxesBuffersから

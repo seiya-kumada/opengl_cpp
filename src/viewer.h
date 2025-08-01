@@ -147,6 +147,24 @@ public:
 
 private:
     /**
+     * @brief OpenGLバッファのペア（VAO + VBO）
+     */
+    struct BufferPair {
+        unsigned int VAO;
+        unsigned int VBO;
+    };
+    
+    /**
+     * @brief 頂点データからOpenGLバッファ（VAO + VBO）を作成する
+     * 
+     * 共通のバッファ作成ロジックを提供し、コードの重複を排除する。
+     * 
+     * @param vertices 頂点データ
+     * @return 作成されたVAOとVBOのペア
+     */
+    BufferPair createOpenGLBuffers(const std::vector<float>& vertices);
+    
+    /**
      * @brief エラーメッセージをログに出力する
      * 
      * @param message エラーメッセージ

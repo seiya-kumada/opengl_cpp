@@ -156,6 +156,28 @@ private:
     mutable std::unordered_map<std::string, GLint> uniformLocationCache;  ///< uniform location キャッシュ
     
     /**
+     * @brief uniform 変数を設定するためのテンプレート関数
+     * 
+     * 共通のuniform設定ロジック（location取得とエラーチェック）を処理し、
+     * 型固有のOpenGL関数呼び出しはラムダで委譲する。
+     * 
+     * @tparam T uniform 変数の型
+     * @tparam Func OpenGL uniform 設定関数（ラムダ）の型
+     * @param name uniform 変数名
+     * @param value 設定する値
+     * @param glFunc OpenGL uniform 設定関数を呼び出すラムダ
+     */
+    template<typename T, typename Func>
+    void setUniformImpl(const std::string& name, const T& value, Func glFunc) const
+    {
+        auto location = getUniformLocation(name);
+        if (location != -1)
+        {
+            glFunc(location, value);
+        }
+    }
+    
+    /**
      * @brief シェーダーファイルをテキストとして読み込む
      * 
      * @param filePath ファイルパス

@@ -16,6 +16,10 @@ struct aiScene;
 struct aiMesh;
 struct aiFace;
 
+namespace Assimp {
+    class Importer;
+}
+
 /**
  * @brief 3Dモデルの三角形を表す構造体
  * 
@@ -176,6 +180,30 @@ private:
      * @post mesh.center と mesh.scale が設定される
      */
     void calculateCenterAndScale(ModelMesh& mesh);
+    
+    /**
+     * @brief Assimpインポーターを設定し、ファイルを読み込む
+     * 
+     * @param filePath 読み込むファイルのパス
+     * @return 読み込んだシーンポインタ（失敗時はnullptr）
+     */
+    const aiScene* loadFileWithAssimp(const std::string& filePath, Assimp::Importer& importer);
+    
+    /**
+     * @brief 読み込んだシーンの基本検証を行う
+     * 
+     * @param scene 検証するシーン
+     * @return 検証成功時はtrue、失敗時はfalse
+     */
+    bool validateScene(const aiScene* scene);
+    
+    /**
+     * @brief メッシュ処理結果の検証を行う
+     * 
+     * @param mesh 検証するメッシュ
+     * @return 検証成功時はtrue、失敗時はfalse
+     */
+    bool validateProcessedMesh(const ModelMesh& mesh);
     
     /**
      * @brief 単一の三角形を作成する

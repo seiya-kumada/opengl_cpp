@@ -54,6 +54,11 @@ constexpr int COLOR_COMPONENTS{3};
 constexpr int TRIANGLE_VERTICES{3};
 constexpr int AXES_COUNT{3};
 constexpr int AXIS_VERTICES{2}; // 原点と先端
+
+// 頂点属性インデックス（シェーダーのlocation番号）
+constexpr int POSITION_ATTRIBUTE_INDEX{0};
+constexpr int COLOR_ATTRIBUTE_INDEX{1};
+constexpr int NORMAL_ATTRIBUTE_INDEX{2};
 } // namespace
 
 STLViewer::STLViewer() : window(nullptr, glfwDestroyWindow), axesVAO(0), axesVBO(0), modelVAO(0), modelVBO(0)
@@ -217,7 +222,7 @@ std::vector<float> STLViewer::convertSTLToVertices() const
     auto vertices = std::vector<float>{};
     vertices.reserve(mesh.triangles.size() * TRIANGLE_VERTICES * VERTEX_COMPONENTS);
 
-    // boost::rangeでモダンに書き直し（シンプル版）
+    // 各三角形の頂点データをOpenGL用の配列形式に変換
     for (const auto& triangle : mesh.triangles) {
         auto vertexData = triangle.vertices 
             | boost::adaptors::transformed([&triangle](const auto& vertex) {
@@ -238,20 +243,9 @@ std::vector<float> STLViewer::convertSTLToVertices() const
 
 bool STLViewer::createModelBuffers(const std::vector<float> &vertices)
 {
-    // VAOとVBOを作成
-    glGenVertexArrays(1, &modelVAO);
-    glGenBuffers(1, &modelVBO);
-
-    glBindVertexArray(modelVAO);
-
-    glBindBuffer(GL_ARRAY_BUFFER, modelVBO);
-    glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float), vertices.data(), GL_STATIC_DRAW);
-
-    // 頂点属性を設定（共通関数使用）
-    setupVertexAttributes();
-
-    glBindVertexArray(0);
-
+    auto buffers = createOpenGLBuffers(vertices);
+    modelVAO = buffers.VAO;
+    modelVBO = buffers.VBO;
     return true;
 }
 
@@ -377,18 +371,21 @@ void STLViewer::sendMatricesToShader() const
 void STLViewer::setupVertexAttributes()
 {
     // 位置属性
-    glVertexAttribPointer(0, POSITION_COMPONENTS, GL_FLOAT, GL_FALSE, VERTEX_COMPONENTS * sizeof(float), (void *)0);
-    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(POSITION_ATTRIBUTE_INDEX, POSITION_COMPONENTS, GL_FLOAT, GL_FALSE, 
+                          VERTEX_COMPONENTS * sizeof(float), (void *)0);
+    glEnableVertexAttribArray(POSITION_ATTRIBUTE_INDEX);
 
     // 色属性
-    glVertexAttribPointer(1, COLOR_COMPONENTS, GL_FLOAT, GL_FALSE, VERTEX_COMPONENTS * sizeof(float),
+    glVertexAttribPointer(COLOR_ATTRIBUTE_INDEX, COLOR_COMPONENTS, GL_FLOAT, GL_FALSE, 
+                          VERTEX_COMPONENTS * sizeof(float),
                           (void *)(POSITION_COMPONENTS * sizeof(float)));
-    glEnableVertexAttribArray(1);
+    glEnableVertexAttribArray(COLOR_ATTRIBUTE_INDEX);
 
     // 法線属性
-    glVertexAttribPointer(2, NORMAL_COMPONENTS, GL_FLOAT, GL_FALSE, VERTEX_COMPONENTS * sizeof(float),
+    glVertexAttribPointer(NORMAL_ATTRIBUTE_INDEX, NORMAL_COMPONENTS, GL_FLOAT, GL_FALSE, 
+                          VERTEX_COMPONENTS * sizeof(float),
                           (void *)((POSITION_COMPONENTS + COLOR_COMPONENTS) * sizeof(float)));
-    glEnableVertexAttribArray(2);
+    glEnableVertexAttribArray(NORMAL_ATTRIBUTE_INDEX);
 }
 
 std::vector<float> STLViewer::createAxesVertices() const
@@ -411,20 +408,9 @@ std::vector<float> STLViewer::createAxesVertices() const
 
 bool STLViewer::createAxesOpenGLBuffers(const std::vector<float>& vertices)
 {
-    // VAOとVBOを作成
-    glGenVertexArrays(1, &axesVAO);
-    glGenBuffers(1, &axesVBO);
-
-    glBindVertexArray(axesVAO);
-
-    glBindBuffer(GL_ARRAY_BUFFER, axesVBO);
-    glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float), vertices.data(), GL_STATIC_DRAW);
-
-    // 頂点属性を設定（共通関数使用）
-    setupVertexAttributes();
-
-    glBindVertexArray(0);
-
+    auto buffers = createOpenGLBuffers(vertices);
+    axesVAO = buffers.VAO;
+    axesVBO = buffers.VBO;
     return true;
 }
 
@@ -436,7 +422,26 @@ void STLViewer::processInput()
     }
 }
 
-// グローバルコールバック関数
+STLViewer::BufferPair STLViewer::createOpenGLBuffers(const std::vector<float>& vertices)
+{
+    BufferPair buffers{};
+    
+    // VAOとVBOを作成
+    glGenVertexArrays(1, &buffers.VAO);
+    glGenBuffers(1, &buffers.VBO);
+
+    glBindVertexArray(buffers.VAO);
+
+    glBindBuffer(GL_ARRAY_BUFFER, buffers.VBO);
+    glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float), vertices.data(), GL_STATIC_DRAW);
+
+    // 頂点属性を設定（共通関数使用）
+    setupVertexAttributes();
+
+    glBindVertexArray(0);
+    
+    return buffers;
+}
 
 void STLViewer::logError(const std::string &message, const std::string &functionName) const
 {
@@ -450,6 +455,7 @@ void STLViewer::logError(const std::string &message, const std::string &function
     }
 }
 
+// グローバルコールバック関数
 void scroll_callback(GLFWwindow *window, double xoffset, double yoffset)
 {
     STLViewer *viewer = static_cast<STLViewer *>(glfwGetWindowUserPointer(window));
