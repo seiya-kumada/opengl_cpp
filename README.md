@@ -43,9 +43,9 @@ cmake --build . --config Release
 
 3. **実行**
 ```powershell
-cd Release
-.\stl_viewer.exe path/to/model.stl
+build\Release\stl_viewer.exe path/to/model.stl
 ```
+ルートディレクトリから実行する。
 
 ## 🤖 Claude Desktop MCP サーバー
 
@@ -56,9 +56,7 @@ Claude Desktopから3Dモデルを直接表示できます。
 1. **Python環境構築**
 ```powershell
 cd mcp-server
-python -m venv .venv
-.venv\Scripts\activate
-pip install -e .
+uv sync
 ```
 
 2. **Claude Desktop設定**
